@@ -172,3 +172,21 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+   # 프로젝트 특화 폴더
+   venv310/
+   so-vits-svc/
+   downloads/
+   uploads/
+   converted/
+   user_data/
+   
+   # 미디어 파일
+   *.mp3
+   *.wav
+   *.ogg
+   *.m4a
+   
+   # 기타 큰 파일
+   *.pth
+   *.pt
