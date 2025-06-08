@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Form, Body
+from fastapi import FastAPI, APIRouter, Form, Body, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -6,6 +6,7 @@ import importlib.util
 import logging
 import sys
 from pathlib import Path
+import json
 
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
@@ -83,21 +84,65 @@ class URLRequest(BaseModel):
 # YouTube 다운로드 엔드포인트 직접 구현 - 여러 입력 형식 지원
 @app.post("/upload/url")
 async def upload_url(
+    request: Request,
     url_data: URLRequest = Body(None),
     url: str = Form(None)
 ):
     try:
         # 다양한 입력 방식 처리
         final_url = None
+        
+        # 1. JSON 본문 확인
         if url_data and url_data.url:
             final_url = url_data.url
             logger.info(f"JSON 본문에서 URL 추출: {final_url}")
+        
+        # 2. 폼 데이터 확인
         elif url:
             final_url = url
             logger.info(f"폼 데이터에서 URL 추출: {final_url}")
+        
+        # 3. 요청 본문을 직접 확인
         else:
+            try:
+                body = await request.body()
+                body_str = body.decode('utf-8')
+                logger.info(f"요청 본문: {body_str}")
+                
+                # JSON 형식 확인
+                try:
+                    body_json = json.loads(body_str)
+                    if isinstance(body_json, dict) and 'url' in body_json:
+                        final_url = body_json['url']
+                        logger.info(f"요청 본문에서 URL 추출: {final_url}")
+                    elif isinstance(body_json, str):
+                        final_url = body_json
+                        logger.info(f"요청 본문에서 문자열 추출: {final_url}")
+                except:
+                    # URL 형식이 아닌 경우 본문 자체가 URL일 수 있음
+                    if body_str.startswith('http'):
+                        final_url = body_str
+                        logger.info(f"요청 본문이 직접 URL: {final_url}")
+                    # 폼 데이터 형식인지 확인
+                    elif '=' in body_str:
+                        params = dict(param.split('=') for param in body_str.split('&'))
+                        if 'url' in params:
+                            final_url = params['url']
+                            logger.info(f"폼 파라미터에서 URL 추출: {final_url}")
+            except Exception as e:
+                logger.error(f"요청 본문 파싱 오류: {str(e)}")
+                
+        # 4. 쿼리 파라미터 확인
+        if not final_url:
+            query_params = dict(request.query_params)
+            if 'url' in query_params:
+                final_url = query_params['url']
+                logger.info(f"쿼리 파라미터에서 URL 추출: {final_url}")
+                
+        # URL을 찾지 못한 경우
+        if not final_url:
             logger.error("URL을 찾을 수 없습니다")
-            return {"error": "URL을 제공해주세요"}
+            return {"error": "URL을 제공해주세요. 지원하는 형식: JSON 본문, 폼 데이터, 쿼리 파라미터"}
             
         # 로그 출력
         logger.info(f"URL 다운로드 요청: {final_url}")
