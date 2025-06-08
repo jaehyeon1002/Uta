@@ -245,7 +245,6 @@ async def upload_url(
         else:
             logger.error("다운로드된 파일을 찾을 수 없습니다")
             return {"error": "다운로드된 파일을 찾을 수 없습니다"}
-            
     except Exception as e:
         logger.error(f"다운로드 실패: {str(e)}")
         return {"error": f"YouTube URL 다운로드 중 오류 발생: {str(e)}"}
@@ -294,10 +293,6 @@ if routers_dir and routers_dir.exists():
             router = load_router_from_file(file_path)
             if router:
                 app.include_router(router, prefix=config["prefix"])
-        else:
-            logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
-else:
-    logger.warning("라우터 디렉토리가 없어 라우터를 로드하지 않습니다.")
         else:
             logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
 else:
