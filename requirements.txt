@@ -1,23 +1,26 @@
-   fastapi
-   uvicorn[standard]
-   python-multipart
-   yt-dlp
-   pydub
-   demucs
-   ffmpeg-python
-   numpy==1.23.5
-   pyworld
-   scipy==1.10.0
-   SoundFile==0.12.1
-   torch
-   torchaudio
-   torchcrepe
-   tqdm
-   rich
-   loguru
-   scikit-maad
-   praat-parselmouth
-   librosa==0.9.1
-   fairseq==0.12.2
-   transformers
-   pyyaml
+fastapi
+uvicorn[standard]
+python-multipart
+yt-dlp
+pydub
+demucs
+ffmpeg-python
+numpy==1.23.5
+pyworld
+scipy==1.10.0
+SoundFile==0.12.1
+torch
+torchaudio
+torchcrepe
+tqdm
+rich
+loguru
+scikit-maad
+praat-parselmouth
+librosa==0.9.1
+fairseq>=0.12.2
+transformers
+pyyaml
+PyJWT==2.8.0
+email-validator==2.1.0
+omegaconf==2.0.0
