@@ -28,8 +28,9 @@ def download_audio_from_url(url: str) -> str:
     }
     
     # YouTube API 키가 설정되어 있으면 추가
-    if YOUTUBE_API_KEY:
-        ydl_opts['ap_mso'] = YOUTUBE_API_KEY
+    youtube_api_key = os.getenv("YOUTUBE_API_KEY", "")
+    if youtube_api_key:
+        ydl_opts['ap_mso'] = youtube_api_key
         logger.info("YouTube API 키가 설정되었습니다.")
     else:
         logger.warning("YouTube API 키가 설정되지 않았습니다.")
