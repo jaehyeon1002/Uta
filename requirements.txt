@@ -1,3 +1,4 @@
+pip==24.0
 fastapi
 uvicorn[standard]
 python-multipart
@@ -18,9 +19,8 @@ loguru
 scikit-maad
 praat-parselmouth
 librosa==0.9.1
-fairseq>=0.12.2
+fairseq>=0.10.0,<0.12.3
 transformers
 pyyaml
 PyJWT==2.8.0
 email-validator==2.1.0
-omegaconf==2.0.0
