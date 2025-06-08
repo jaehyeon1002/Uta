@@ -1,14 +1,17 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 import os
-import importlib
+import importlib.util
 import logging
 import sys
 from pathlib import Path
 
 # 프로젝트 루트 경로를 Python 경로에 추가
 current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent
+app_dir = current_file.parent
+project_root = app_dir.parent
+routers_dir = app_dir / "routers"
+
 sys.path.insert(0, str(project_root))
 
 # 로거 설정
@@ -97,51 +100,46 @@ async def upload_url(url: str):
         logger.error(f"다운로드 실패: {str(e)}")
         return {"error": f"YouTube URL 다운로드 중 오류 발생: {str(e)}"}
 
-# 각 라우터 로드 시도
-try:
-    # auth 라우터 로드 시도
-    from app.routers.auth import router as auth_router
-    app.include_router(auth_router, prefix="/auth")
-    logger.info("Auth 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Auth 라우터 로드 실패: {str(e)}")
-    
-try:
-    # upload 라우터 로드 시도
-    from app.routers.upload import router as upload_router
-    app.include_router(upload_router, prefix="/upload")
-    logger.info("Upload 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Upload 라우터 로드 실패: {str(e)}")
-    
-try:
-    # convert 라우터 로드 시도
-    from app.routers.convert import router as convert_router
-    app.include_router(convert_router, prefix="/convert")
-    logger.info("Convert 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Convert 라우터 로드 실패: {str(e)}")
-    
-try:
-    # split 라우터 로드 시도
-    from app.routers.split import router as split_router
-    app.include_router(split_router, prefix="/audio")
-    logger.info("Split 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Split 라우터 로드 실패: {str(e)}")
-    
-try:
-    # convert_svc 라우터 로드 시도
-    from app.routers.convert_svc import router as convert_svc_router
-    app.include_router(convert_svc_router, prefix="/svc")
-    logger.info("Convert SVC 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Convert SVC 라우터 로드 실패: {str(e)}")
-    
-try:
-    # train 라우터 로드 시도
-    from app.routers.train import router as train_router
-    app.include_router(train_router, prefix="/train")
-    logger.info("Train 라우터 로드 성공")
-except Exception as e:
-    logger.error(f"Train 라우터 로드 실패: {str(e)}")
+# 동적으로 라우터 모듈 로드하는 함수
+def load_router_from_file(file_path, router_name="router"):
+    try:
+        module_name = file_path.stem
+        logger.info(f"모듈 로드 시도: {module_name} (파일: {file_path})")
+        
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec is None:
+            logger.error(f"모듈 스펙을 찾을 수 없음: {file_path}")
+            return None
+            
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        router = getattr(module, router_name, None)
+        if router is None:
+            logger.error(f"라우터를 찾을 수 없음: {router_name} in {module_name}")
+            return None
+            
+        logger.info(f"라우터 로드 성공: {module_name}")
+        return router
+    except Exception as e:
+        logger.error(f"라우터 로드 실패: {file_path} - {str(e)}")
+        return None
+
+# 각 라우터 파일을 직접 검색하여 로드
+router_config = [
+    {"file": "auth.py", "prefix": "/auth"},
+    {"file": "upload.py", "prefix": "/upload"},
+    {"file": "convert.py", "prefix": "/convert"},
+    {"file": "split.py", "prefix": "/audio"},
+    {"file": "convert_svc.py", "prefix": "/svc"},
+    {"file": "train.py", "prefix": "/train"}
+]
+
+for config in router_config:
+    file_path = routers_dir / config["file"]
+    if file_path.exists():
+        router = load_router_from_file(file_path)
+        if router:
+            app.include_router(router, prefix=config["prefix"])
+    else:
+        logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
