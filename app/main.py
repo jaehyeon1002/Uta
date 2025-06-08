@@ -191,6 +191,49 @@ async def upload_url(
         
         if os.path.exists(output_path):
             logger.info(f"다운로드 성공: {output_path}")
+            
+            # 데이터베이스에 파일 정보 저장
+            try:
+                # Supabase 연결
+                from supabase import create_client
+                from mutagen.mp3 import MP3
+                
+                supabase_url = os.getenv("SUPABASE_URL")
+                supabase_key = os.getenv("SUPABASE_KEY")
+                
+                if supabase_url and supabase_key:
+                    supabase = create_client(supabase_url, supabase_key)
+                    
+                    # 파일 정보 수집
+                    file_size = os.path.getsize(output_path)
+                    
+                    # 오디오 길이 계산
+                    audio = MP3(output_path)
+                    duration = int(audio.info.length)
+                    
+                    # 사용자 ID 추출 (Auth 헤더에서)
+                    auth_header = request.headers.get("Authorization", "")
+                    user_id = auth_header.replace("Bearer ", "") if auth_header else "anonymous"
+                    
+                    # 데이터베이스에 저장
+                    data = {
+                        "user_id": user_id,
+                        "title": f"다운로드된 오디오 {file_id}",
+                        "file_url": output_path,
+                        "file_type": "original",
+                        "upload_source": "url",
+                        "original_filename": f"{file_id}.mp3",
+                        "file_size": file_size,
+                        "duration": duration
+                    }
+                    
+                    result = supabase.table("uploaded_tracks").insert(data).execute()
+                    logger.info(f"파일 정보를 데이터베이스에 저장했습니다: {output_path}")
+                else:
+                    logger.warning("Supabase 설정이 없어 데이터베이스에 저장하지 않습니다")
+            except Exception as e:
+                logger.error(f"데이터베이스 저장 중 오류 발생: {str(e)}")
+            
             return {"message": "다운로드 성공", "file_path": output_path}
         else:
             logger.error("다운로드된 파일을 찾을 수 없습니다")
