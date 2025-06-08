@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Form, Body
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import importlib.util
@@ -75,10 +76,32 @@ app.add_middleware(
 async def root():
     return {"message": "API is running"}
 
-# YouTube 다운로드 엔드포인트 직접 구현
+# URL 요청 모델 정의
+class URLRequest(BaseModel):
+    url: str
+
+# YouTube 다운로드 엔드포인트 직접 구현 - 여러 입력 형식 지원
 @app.post("/upload/url")
-async def upload_url(url: str):
+async def upload_url(
+    url_data: URLRequest = Body(None),
+    url: str = Form(None)
+):
     try:
+        # 다양한 입력 방식 처리
+        final_url = None
+        if url_data and url_data.url:
+            final_url = url_data.url
+            logger.info(f"JSON 본문에서 URL 추출: {final_url}")
+        elif url:
+            final_url = url
+            logger.info(f"폼 데이터에서 URL 추출: {final_url}")
+        else:
+            logger.error("URL을 찾을 수 없습니다")
+            return {"error": "URL을 제공해주세요"}
+            
+        # 로그 출력
+        logger.info(f"URL 다운로드 요청: {final_url}")
+        
         import yt_dlp
         import uuid
         
@@ -115,8 +138,8 @@ async def upload_url(url: str):
         
         # 다운로드 실행
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            logger.info(f"다운로드 시작: {url}")
-            ydl.download([url])
+            logger.info(f"다운로드 시작: {final_url}")
+            ydl.download([final_url])
         
         # 결과 파일 경로
         output_path = os.path.join(download_dir, f"{file_id}.mp3")
@@ -125,6 +148,7 @@ async def upload_url(url: str):
             logger.info(f"다운로드 성공: {output_path}")
             return {"message": "다운로드 성공", "file_path": output_path}
         else:
+            logger.error("다운로드된 파일을 찾을 수 없습니다")
             return {"error": "다운로드된 파일을 찾을 수 없습니다"}
             
     except Exception as e:
