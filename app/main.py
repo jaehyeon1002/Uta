@@ -6,17 +6,48 @@ import logging
 import sys
 from pathlib import Path
 
-# 프로젝트 루트 경로를 Python 경로에 추가
-current_file = Path(__file__).resolve()
-app_dir = current_file.parent
-project_root = app_dir.parent
-routers_dir = app_dir / "routers"
-
-sys.path.insert(0, str(project_root))
-
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 현재 디렉토리 구조 탐색
+current_file = Path(__file__).resolve()
+current_dir = current_file.parent
+project_root = current_dir.parent
+
+logger.info(f"현재 파일 경로: {current_file}")
+logger.info(f"현재 디렉토리: {current_dir}")
+logger.info(f"프로젝트 루트: {project_root}")
+
+# 가능한 라우터 디렉토리 경로
+possible_router_dirs = [
+    current_dir / "routers",  # app/routers
+    project_root / "app" / "routers",  # /project_root/app/routers
+    project_root / "routers",  # /project_root/routers
+]
+
+routers_dir = None
+for path in possible_router_dirs:
+    if path.exists() and path.is_dir():
+        routers_dir = path
+        logger.info(f"라우터 디렉토리 발견: {routers_dir}")
+        break
+
+if not routers_dir:
+    logger.error("라우터 디렉토리를 찾을 수 없습니다!")
+    # 대체 경로 시도
+    routers_dir = current_dir / "routers"
+    logger.info(f"대체 라우터 디렉토리 사용: {routers_dir}")
+
+# 디렉토리 내용 출력
+if routers_dir and routers_dir.exists():
+    logger.info(f"{routers_dir} 디렉토리 내용:")
+    for item in routers_dir.iterdir():
+        logger.info(f"  - {item.name}")
+else:
+    logger.error(f"{routers_dir} 디렉토리가 존재하지 않습니다.")
+    
+sys.path.insert(0, str(project_root))
 
 app = FastAPI()
 
@@ -125,21 +156,26 @@ def load_router_from_file(file_path, router_name="router"):
         logger.error(f"라우터 로드 실패: {file_path} - {str(e)}")
         return None
 
-# 각 라우터 파일을 직접 검색하여 로드
-router_config = [
-    {"file": "auth.py", "prefix": "/auth"},
-    {"file": "upload.py", "prefix": "/upload"},
-    {"file": "convert.py", "prefix": "/convert"},
-    {"file": "split.py", "prefix": "/audio"},
-    {"file": "convert_svc.py", "prefix": "/svc"},
-    {"file": "train.py", "prefix": "/train"}
-]
+# routers_dir이 존재하는 경우에만 라우터 로드 시도
+if routers_dir and routers_dir.exists():
+    # 각 라우터 파일을 직접 검색하여 로드
+    router_config = [
+        {"file": "auth.py", "prefix": "/auth"},
+        {"file": "upload.py", "prefix": "/upload"},
+        {"file": "convert.py", "prefix": "/convert"},
+        {"file": "split.py", "prefix": "/audio"},
+        {"file": "convert_svc.py", "prefix": "/svc"},
+        {"file": "train.py", "prefix": "/train"}
+    ]
 
-for config in router_config:
-    file_path = routers_dir / config["file"]
-    if file_path.exists():
-        router = load_router_from_file(file_path)
-        if router:
-            app.include_router(router, prefix=config["prefix"])
-    else:
-        logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
+    for config in router_config:
+        file_path = routers_dir / config["file"]
+        if file_path.exists():
+            logger.info(f"라우터 파일 발견: {file_path}")
+            router = load_router_from_file(file_path)
+            if router:
+                app.include_router(router, prefix=config["prefix"])
+        else:
+            logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
+else:
+    logger.warning("라우터 디렉토리가 없어 라우터를 로드하지 않습니다.")
