@@ -1,21 +1,31 @@
 #!/bin/bash
 set -e
 
-# Python 의존성 설치
+# 기본 도구 설치
 pip install --upgrade pip==24.0
-pip install wheel setuptools
+pip install setuptools wheel
 
-# 일부 문제가 될 수 있는 패키지 먼저 설치
-pip install PyYAML==6.0
-pip install omegaconf==2.0.5
-pip install hydra-core==1.0.7
+# 기본 패키지 먼저 설치
+pip install fastapi uvicorn python-multipart PyJWT==2.8.0 email-validator==2.1.0
 
-# fairseq 의존성 설치
-pip install regex sacrebleu bitarray
+# 문제가 될 수 있는 패키지들을 개별적으로 설치
+pip install pyyaml
+pip install numpy==1.23.5
+pip install scipy==1.10.0
+pip install SoundFile==0.12.1
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install torchcrepe
+pip install tqdm rich loguru
 
-# 나머지 패키지 설치 - 문제되는 패키지 제외
-grep -v "fairseq" requirements.txt | grep -v "pip" > temp_requirements.txt
-pip install -r temp_requirements.txt
+# 음성 처리 관련 패키지
+pip install pydub
+pip install ffmpeg-python
+pip install yt-dlp
+pip install pyworld
+pip install scikit-maad
+pip install praat-parselmouth
+pip install librosa==0.9.1
 
-# fairseq 수동 설치 시도
-pip install fairseq==0.10.2 
+# 변환 관련 패키지
+pip install transformers 
