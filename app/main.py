@@ -54,11 +54,19 @@ sys.path.insert(0, str(project_root))
 
 app = FastAPI()
 
-# 정적 파일 디렉토리 설정
-os.makedirs("downloads", exist_ok=True)
-os.makedirs("uploads", exist_ok=True)
-app.mount("/files", StaticFiles(directory="downloads"), name="downloads")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# 정적 파일 디렉토리 설정 - 절대 경로 사용
+project_path = os.getcwd()
+downloads_path = os.path.join(project_path, "downloads")
+uploads_path = os.path.join(project_path, "uploads")
+
+os.makedirs(downloads_path, exist_ok=True)
+os.makedirs(uploads_path, exist_ok=True)
+
+logger.info(f"다운로드 경로: {downloads_path}")
+logger.info(f"업로드 경로: {uploads_path}")
+
+app.mount("/files", StaticFiles(directory=downloads_path), name="downloads")
+app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
 # 프론트엔드 URL 설정
 frontend_url = os.getenv("FRONTEND_URL", "https://vocal-alchemy-mixer.lovable.app")
@@ -201,6 +209,11 @@ async def upload_url(
             
             # 데이터베이스에 파일 정보 저장
             try:
+                # 임시로 Supabase 코드 비활성화
+                logger.info(f"파일 URL: /files/{file_id}.mp3")
+                logger.info("데이터베이스 저장 기능 임시 비활성화")
+                
+                """
                 # Supabase 연결
                 from supabase import create_client
                 from mutagen.mp3 import MP3
@@ -238,10 +251,11 @@ async def upload_url(
                     logger.info(f"파일 정보를 데이터베이스에 저장했습니다: {output_path}")
                 else:
                     logger.warning("Supabase 설정이 없어 데이터베이스에 저장하지 않습니다")
+                """
             except Exception as e:
                 logger.error(f"데이터베이스 저장 중 오류 발생: {str(e)}")
             
-            return {"message": "다운로드 성공", "file_path": output_path}
+            return {"message": "다운로드 성공", "file_path": output_path, "file_url": f"/files/{file_id}.mp3"}
         else:
             logger.error("다운로드된 파일을 찾을 수 없습니다")
             return {"error": "다운로드된 파일을 찾을 수 없습니다"}
@@ -297,3 +311,28 @@ if routers_dir and routers_dir.exists():
             logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
 else:
     logger.warning("라우터 디렉토리가 없어 라우터를 로드하지 않습니다.")
+
+# 파일 시스템 디버그 엔드포인트 추가
+@app.get("/debug-path")
+def debug_path():
+    import os
+    downloads_dir = os.path.join(os.getcwd(), "downloads")
+    uploads_dir = os.path.join(os.getcwd(), "uploads")
+    
+    downloads_files = []
+    if os.path.exists(downloads_dir):
+        downloads_files = os.listdir(downloads_dir)
+    
+    uploads_files = []
+    if os.path.exists(uploads_dir):
+        uploads_files = os.listdir(uploads_dir)
+    
+    return {
+        "current_dir": os.getcwd(),
+        "downloads_dir": downloads_dir,
+        "downloads_exists": os.path.exists(downloads_dir),
+        "downloads_files": downloads_files,
+        "uploads_dir": uploads_dir,
+        "uploads_exists": os.path.exists(uploads_dir),
+        "uploads_files": uploads_files
+    }
