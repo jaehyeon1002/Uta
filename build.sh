@@ -28,4 +28,6 @@ pip install praat-parselmouth
 pip install librosa==0.9.1
 
 # 변환 관련 패키지
-pip install transformers 
+pip install transformers
+
+mkdir -p downloads uploads converted user_data 
