@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, Form, Body, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 import importlib.util
 import logging
@@ -52,6 +53,12 @@ else:
 sys.path.insert(0, str(project_root))
 
 app = FastAPI()
+
+# 정적 파일 디렉토리 설정
+os.makedirs("downloads", exist_ok=True)
+os.makedirs("uploads", exist_ok=True)
+app.mount("/files", StaticFiles(directory="downloads"), name="downloads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # 프론트엔드 URL 설정
 frontend_url = os.getenv("FRONTEND_URL", "https://vocal-alchemy-mixer.lovable.app")
@@ -219,7 +226,7 @@ async def upload_url(
                     data = {
                         "user_id": user_id,
                         "title": f"다운로드된 오디오 {file_id}",
-                        "file_url": output_path,
+                        "file_url": f"/files/{file_id}.mp3",  # 웹에서 접근 가능한 URL로 수정
                         "file_type": "original",
                         "upload_source": "url",
                         "original_filename": f"{file_id}.mp3",
@@ -287,6 +294,10 @@ if routers_dir and routers_dir.exists():
             router = load_router_from_file(file_path)
             if router:
                 app.include_router(router, prefix=config["prefix"])
+        else:
+            logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
+else:
+    logger.warning("라우터 디렉토리가 없어 라우터를 로드하지 않습니다.")
         else:
             logger.error(f"라우터 파일을 찾을 수 없음: {file_path}")
 else:
