@@ -1,8 +1,19 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import jwt
+from fastapi import HTTPException, Header
+from typing import Optional
 
 LOG_DIR = "logs"
+
+# JWT 설정
+SECRET_KEY = os.getenv("SECRET_KEY", "YOUR_SECRET_KEY")  # 환경 변수에서 가져오기
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7일
+
+# YouTube API 키 설정
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")  # 환경 변수에서 가져오기
 
 def setup_logger(name, log_level=logging.INFO):
     """
@@ -64,4 +75,28 @@ def ensure_dir_exists(directory):
         directory: 확인할 디렉토리 경로
     """
     if not os.path.exists(directory):
-        os.makedirs(directory) 
+        os.makedirs(directory)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰")
+        return user_id
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="인증 실패")
+
+def get_current_user(authorization: str = Header(None)):
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="인증 헤더가 없거나 잘못됨")
+    
+    token = authorization.split("Bearer ")[1]
+    return verify_token(token) 
