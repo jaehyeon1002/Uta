@@ -3,6 +3,7 @@ import os
 import uuid
 import logging
 from app.utils import YOUTUBE_API_KEY
+import glob
 
 DOWNLOAD_DIR = "downloads"
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ def download_audio_from_url(url: str) -> str:
 
     # 고유한 파일명 생성
     file_id = str(uuid.uuid4())
-    output_template = os.path.join(DOWNLOAD_DIR, f"{file_id}.%(ext)s")
+    output_template = os.path.join(DOWNLOAD_DIR, f"{file_id}-%(playlist_index)s.%(ext)s")
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -32,6 +33,10 @@ def download_audio_from_url(url: str) -> str:
         'geo_bypass': True,
         'geo_bypass_country': 'US',
         'geo_bypass_ip_block': 'US',
+        # 플레이리스트 전체를 받고 싶지 않을 때 true → 단일 트랙만
+        'noplaylist': True,
+        # 개별 트랙 에러가 나더라도 나머지 트랙은 계속 다운로드
+        'ignoreerrors': 'only_download',
     }
     
     # 프록시가 지정되어 있으면 yt-dlp 옵션에 포함
@@ -52,12 +57,19 @@ def download_audio_from_url(url: str) -> str:
             logger.info(f"다운로드 시작: {url}")
             ydl.download([url])
             
-        output_path = os.path.join(DOWNLOAD_DIR, f"{file_id}.mp3")
-        if os.path.exists(output_path):
-            logger.info(f"다운로드 성공: {output_path}")
-            return output_path
-        else:
-            raise FileNotFoundError(f"다운로드된 파일을 찾을 수 없습니다: {output_path}")
+        # 파일 패턴에 맞는 모든 mp3 탐색 (플레이리스트 대비)
+        candidate_files = glob.glob(os.path.join(DOWNLOAD_DIR, f"{file_id}-*.mp3"))
+
+        # 0바이트 파일 제거
+        valid_files = [f for f in candidate_files if os.path.getsize(f) > 0]
+
+        if not valid_files:
+            raise FileNotFoundError("다운로드된 MP3 파일을 찾을 수 없거나 모두 빈 파일입니다.")
+
+        # 첫 번째 파일 반환 (필요시 리스트를 반환하도록 수정 가능)
+        output_path = valid_files[0]
+        logger.info(f"다운로드 성공: {output_path} (총 {len(valid_files)}개 중 1개)\n")
+        return output_path
             
     except yt_dlp.utils.GeoRestrictedError as ge:
         logger.error(f"Geo 제한 오류: {str(ge)}")
