@@ -1,0 +1,23 @@
+from pydub import AudioSegment
+import os
+import uuid
+
+def mix_vocals_and_instrumental(vocals_path: str, instrumental_path: str) -> str:
+    # 파일 불러오기
+    vocals = AudioSegment.from_file(vocals_path)
+    instrumental = AudioSegment.from_file(instrumental_path)
+
+    # 두 오디오 길이 맞추기 (긴 쪽 자르기)
+    min_len = min(len(vocals), len(instrumental))
+    vocals = vocals[:min_len]
+    instrumental = instrumental[:min_len]
+
+    # 믹싱
+    mixed = instrumental.overlay(vocals)
+
+    # 저장
+    output_path = f"final_covers/final_{uuid.uuid4().hex[:8]}.mp3"
+    os.makedirs("final_covers", exist_ok=True)
+    mixed.export(output_path, format="mp3")
+
+    return output_path

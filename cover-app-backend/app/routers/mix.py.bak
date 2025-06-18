@@ -1,0 +1,21 @@
+from fastapi import APIRouter, Form
+from pydantic import BaseModel
+from app.services.mixer import mix_vocals_and_instrumental
+import os
+
+router = APIRouter()
+
+class MixResponse(BaseModel):
+    message: str
+    output_path: str
+
+@router.post("/mix", response_model=MixResponse)
+async def mix_audio(vocals_path: str = Form(...), instrumental_path: str = Form(...)):
+    if not os.path.exists(vocals_path) or not os.path.exists(instrumental_path):
+        return {"message": "파일 경로가 유효하지 않음", "output_path": ""}
+
+    output_path = mix_vocals_and_instrumental(vocals_path, instrumental_path)
+    return {
+        "message": "믹싱 성공",
+        "output_path": output_path
+    }
