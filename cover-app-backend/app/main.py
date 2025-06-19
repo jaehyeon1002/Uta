@@ -297,7 +297,8 @@ if routers_dir and routers_dir.exists():
         {"file": "convert.py", "prefix": "/convert"},
         {"file": "split.py", "prefix": "/audio"},
         {"file": "convert_svc.py", "prefix": "/svc"},
-        {"file": "train.py", "prefix": "/train"}
+        {"file": "train.py", "prefix": "/train"},
+        {"file": "lovable_proxy.py", "prefix": "/lovable"}
     ]
 
     for config in router_config:
