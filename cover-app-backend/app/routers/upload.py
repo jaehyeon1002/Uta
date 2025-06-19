@@ -1,7 +1,8 @@
-from fastapi import APIRouter, UploadFile, File, Depends, Header
+from fastapi import APIRouter, UploadFile, File, Depends, Header, Request
 from pydantic import BaseModel
 import shutil
 import os
+from typing import Optional
 from app.utils import get_current_user
 import uuid
 
@@ -20,9 +21,19 @@ class UploadResponse(BaseModel):
 
 @router.post("/file", response_model=UploadResponse)
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user)
+    authorization: Optional[str] = Header(None)
 ):
+    # 인증 토큰 파싱(있으면)
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            user_id = get_current_user(authorization)
+        except Exception:
+            user_id = "anonymous"
+    else:
+        user_id = "anonymous"
+    
     # 파일 확장자 가져오기
     file_ext = os.path.splitext(file.filename)[1]
     # 고유한 파일명 생성
