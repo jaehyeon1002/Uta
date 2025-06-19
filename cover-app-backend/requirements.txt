@@ -1,23 +1,24 @@
+# ── 웹 서버 ──────────────────────────
 fastapi
-uvicorn[standard]
-python-multipart
+uvicorn[standard]          # h11, uvloop, gunicorn 등 포함
+python-multipart           # 파일 업로드 파싱
 
-# URL 다운로드·오디오 처리
-yt-dlp
-ffmpeg-python
-pydub
+# ── URL 다운로드 & 오디오 처리 ───────
+yt-dlp                     # YouTube/SoundCloud 추출
+ffmpeg-python              # FFmpeg 래퍼
+pydub                      # 간단한 오디오 편집
 
-# 과학 계산
+# ── 과학 계산 & DSP ──────────────────
 numpy==1.23.5
 scipy==1.10.0
 
-# PyTorch – CPU 전용 wheel 지정
-torch==2.2.2+cpu       --index-url https://download.pytorch.org/whl/cpu
-torchaudio==2.2.2+cpu  --index-url https://download.pytorch.org/whl/cpu
-torchcrepe==0.0.24     # 가벼움
+# ── PyTorch CPU 빌드 ─────────────────
+torch==2.2.2            --index-url https://download.pytorch.org/whl/cpu
+torchaudio==2.2.2       --index-url https://download.pytorch.org/whl/cpu
+torchcrepe==0.0.24      # F0 추출용, 순수 파이썬
 
-# 기타
-tqdm
-rich
-loguru
-pydantic==2.11.7
+# ── 보조 라이브러리 ──────────────────
+tqdm                      # 진행바
+rich                      # 컬러 로그
+loguru                    # 로깅
+pydantic==2.11.7          # 데이터 모델
