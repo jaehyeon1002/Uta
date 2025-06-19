@@ -1,25 +1,23 @@
 fastapi
 uvicorn[standard]
 python-multipart
+
+# URL 다운로드·오디오 처리
 yt-dlp
-pydub
 ffmpeg-python
+pydub
+
+# 과학 계산
 numpy==1.23.5
-pyworld
 scipy==1.10.0
-SoundFile==0.12.1
-torch
-torchaudio
-torchcrepe
+
+# PyTorch – CPU 전용 wheel 지정
+torch==2.2.2+cpu       --index-url https://download.pytorch.org/whl/cpu
+torchaudio==2.2.2+cpu  --index-url https://download.pytorch.org/whl/cpu
+torchcrepe==0.0.24     # 가벼움
+
+# 기타
 tqdm
 rich
 loguru
-scikit-maad
-praat-parselmouth
-librosa==0.9.1
-transformers
-pyyaml
-PyJWT==2.8.0
-email-validator==2.1.1
-supabase==2.0.0
-mutagen==1.47.0
+pydantic==2.11.7
