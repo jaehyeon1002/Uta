@@ -22,3 +22,6 @@ tqdm                      # 진행바
 rich                      # 컬러 로그
 loguru                    # 로깅
 pydantic==2.11.7          # 데이터 모델
+
+PyJWT==2.8.0
+httpx==0.24.1
