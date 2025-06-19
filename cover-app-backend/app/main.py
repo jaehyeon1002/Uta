@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Form, Body, Request
+from fastapi import FastAPI, APIRouter, Form, Body, Request, UploadFile, File
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +8,7 @@ import logging
 import sys
 from pathlib import Path
 import json
+import tempfile, shutil
 
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
@@ -101,7 +102,8 @@ class URLRequest(BaseModel):
 async def upload_url(
     request: Request,
     url_data: URLRequest = Body(None),
-    url: str = Form(None)
+    url: str = Form(None),
+    cookies: UploadFile | None = File(None)
 ):
     try:
         # 다양한 입력 방식 처리
@@ -196,6 +198,18 @@ async def upload_url(
         else:
             logger.warning("YouTube API 키가 설정되지 않았습니다.")
         
+        # 쿠키 파일 처리 (옵션)
+        cookie_tmp = None
+        if cookies and cookies.filename:
+            try:
+                cookie_tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt")
+                shutil.copyfileobj(cookies.file, cookie_tmp)
+                cookie_tmp.close()
+                ydl_opts['cookiefile'] = cookie_tmp.name
+                logger.info(f"쿠키 파일 적용: {cookie_tmp.name}")
+            except Exception as e:
+                logger.error(f"쿠키 파일 처리 오류: {e}")
+        
         # 다운로드 실행
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             logger.info(f"다운로드 시작: {final_url}")
@@ -254,6 +268,13 @@ async def upload_url(
                 """
             except Exception as e:
                 logger.error(f"데이터베이스 저장 중 오류 발생: {str(e)}")
+            
+            # 쿠키 임시 파일 삭제
+            if cookie_tmp:
+                try:
+                    os.remove(cookie_tmp.name)
+                except Exception:
+                    pass
             
             return {"message": "다운로드 성공", "file_path": output_path, "file_url": f"/files/{file_id}.mp3"}
         else:
